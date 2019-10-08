@@ -62,11 +62,11 @@ void PIT_init(void) {
     PIT_TCTRL_REG(PIT, 0) |= PIT_TCTRL_TEN_MASK;
 
     /* Period p = 0.2 s, bus clock f = 60 MHz, v = pf - 1 */ 
-    PIT_LDVAL_REG(PIT, 1) = 29999999;
+    PIT_LDVAL_REG(PIT, 1) = 11999999;
     /* Enable interrupt on timeout */
     PIT_TCTRL_REG(PIT, 1) |= PIT_TCTRL_TIE_MASK;
     /* Enable the interrupt in the NVIC */
-    NVIC_EnableIRQ(PIT0_IRQn);
+    NVIC_EnableIRQ(PIT1_IRQn);
     /* Start the timer running */
     PIT_TCTRL_REG(PIT, 1) |= PIT_TCTRL_TEN_MASK;
 
