@@ -4,16 +4,22 @@
 
 #define PIN21_MASK           (1u << 21)
 #define PIN22_MASK           (1u << 22)
+#define PIN26_MASK	     (1u << 26)
 
 void blue_init(void);
+void green_init(void);
 void blue_toggle(void);
+void green_init(void);
+void red_toggle(void);
 void PIT_init(void);
 void PIT0_IRQHandler(void);
 void PIT1_IRQHandler(void);
+void PIT2_IRQHandler(void);
 
 int main(void)
 {
     blue_init();
+    green_init();
     PIT_init();
     while (true) {
     }
@@ -38,6 +44,18 @@ void blue_init(void) {
     GPIOB_PDOR |= (PIN21_MASK | PIN22_MASK);
 }
 
+void green_init(void){
+    /*enable clock to Port E*/
+   SIM_SCGC5 |= SIM_SCGC5_PORTE_MASK;
+
+   PORTE_PCR26 &= ~PORT_PCR_MUX_MASK;
+   PORTE_PCR26 |=  (1u << PORT_PCR_MUX_SHIFT);
+
+   GPIOE_PDDR |= PIN26_MASK;
+
+   GPIOE_PDOR |= PIN26_MASK;
+
+}
 void blue_toggle(void) {
     /* Blue LED, ON <- OFF, OFF <- ON */
     GPIOB_PDOR ^= PIN21_MASK; 
@@ -47,11 +65,18 @@ void red_toggle(void){
     /*RED LED */
     GPIOB_PDOR ^= PIN22_MASK;
 }
+
+void green_toggle(void){
+
+    GPIOE_PDOR ^= PIN26_MASK;
+}
+
 void PIT_init(void) {
     /* Open the clock gate to the PIT */
     SIM_SCGC6 |= (1u << 23);
     /* Enable the clock for the PIT timers. Continue to run in debug mode */
     PIT_MCR_REG(PIT) = 0u;
+
     /* Period p = 0.5 s, bus clock f = 60 MHz, v = pf - 1 */ 
     PIT_LDVAL_REG(PIT, 0) = 29999999;
     /* Enable interrupt on timeout */
@@ -70,6 +95,14 @@ void PIT_init(void) {
     /* Start the timer running */
     PIT_TCTRL_REG(PIT, 1) |= PIT_TCTRL_TEN_MASK;
 
+    /* Period p = 0.33 s, bus clock f = 60 MHz, v = pf - 1 */ 
+    PIT_LDVAL_REG(PIT, 2) = 17999999;
+    /* Enable interrupt on timeout */
+    PIT_TCTRL_REG(PIT, 2) |= PIT_TCTRL_TIE_MASK;
+    /* Enable the interrupt in the NVIC */
+    NVIC_EnableIRQ(PIT2_IRQn);
+    /* Start the timer running */
+    PIT_TCTRL_REG(PIT, 2) |= PIT_TCTRL_TEN_MASK;
 }
 
 void PIT0_IRQHandler(void) {
@@ -84,4 +117,9 @@ void PIT1_IRQHandler(void) {
     red_toggle();
     /* Clear the timer interrupt flag to allow further timer interrupts */
     PIT_TFLG_REG(PIT,1) |= PIT_TFLG_TIF_MASK;
+}
+
+void PIT2_IRQHandler(void){
+    green_toggle();
+    PIT_TFLG_REG(PIT,2) |= PIT_TFLG_TIF_MASK;
 }
