@@ -5,8 +5,12 @@
 #define PIN21_MASK           (1u << 21)
 #define PIN22_MASK           (1u << 22)
 #define PIN26_MASK	     (1u << 26)
+#define PIN6_MASK	     (1u << 6)
+
+static bool flashing = true;
 
 void blue_init(void);
+void sw2_init(void);
 void green_init(void);
 void blue_toggle(void);
 void green_init(void);
@@ -15,11 +19,13 @@ void PIT_init(void);
 void PIT0_IRQHandler(void);
 void PIT1_IRQHandler(void);
 void PIT2_IRQHandler(void);
+void PORTC_IRQHandler(void);
 
 int main(void)
 {
     blue_init();
     green_init();
+    sw2_init();
     PIT_init();
     while (true) {
     }
@@ -56,19 +62,39 @@ void green_init(void){
    GPIOE_PDOR |= PIN26_MASK;
 
 }
+
+void sw2_init(void){
+
+  SIM_SCGC5 |= SIM_SCGC5_PORTC_MASK;
+
+  PORTC_PCR6 &= ~PORT_PCR_MUX_MASK;
+  PORTC_PCR6 |= (1u << PORT_PCR_MUX_SHIFT);
+  
+  PORTC_PCR6 &= ~PORT_PCR_IRQC_MASK;
+  PORTC_PCR6 |= (9u << PORT_PCR_IRQC_SHIFT);
+  
+
+  GPIOC_PDDR &=  ~PIN6_MASK;
+  NVIC_EnableIRQ(PORTC_IRQn);
+}
 void blue_toggle(void) {
+    if (flashing){
     /* Blue LED, ON <- OFF, OFF <- ON */
-    GPIOB_PDOR ^= PIN21_MASK; 
+    GPIOB_PDOR ^= PIN21_MASK;
+  } 
 }
 
 void red_toggle(void){
+    if (flashing){
     /*RED LED */
     GPIOB_PDOR ^= PIN22_MASK;
+  }
 }
 
 void green_toggle(void){
-
+    if (flashing){
     GPIOE_PDOR ^= PIN26_MASK;
+  }
 }
 
 void PIT_init(void) {
@@ -122,4 +148,11 @@ void PIT1_IRQHandler(void) {
 void PIT2_IRQHandler(void){
     green_toggle();
     PIT_TFLG_REG(PIT,2) |= PIT_TFLG_TIF_MASK;
+}
+
+void PORTC_IRQHandler(void){
+    if (PORTC_ISFR & PIN6_MASK){
+	flashing = !flashing;
+	PORTC_ISFR |= PIN6_MASK;
+    }
 }
